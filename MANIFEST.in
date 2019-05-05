@@ -1,0 +1,2 @@
+recursive-include ocd/static/*
+recursive-include ocd/templates/*
