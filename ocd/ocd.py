@@ -1,38 +1,37 @@
-# This is the odc front-end.
+# This is the openshift-client-demo front-end.
 
 from flask import Flask, render_template, flash, redirect, request
 
 import requests
 import json
 import os
-import kubernetes.client
-import kubernetes.config
-from openshift.dynamic import DynamicClient
+# import the Kubernetes client and config objects
+from kubernetes import client, config
 
 application = Flask(__name__)
 application.secret_key = os.environ['FLASK_SECRET']
-k8s_client = config.load_incluster_config()
-dyn_client = DynamicClientk8s_client)
-
+config.load_incluster_config()
+v1 = client.CoreV1Api()
 
 @application.route('/healthz')
 def healthz():
     """
-    Check the health of this peakweb instance. OCP will hit this endpoint to verify the readiness
-    of the peakweb pod.
+    Check the health of this demo instance. OCP will hit this endpoint to verify the readiness
+    of the demo pod.
     """
     return 'OK'
+
+@application.route('/pods')
+def pods():
+    """
+    List pods in the current project
+    """
+    pods = False
+    # Uncomment this line to get the pods lookup working
+    #pods = v1.list_namespaced_pod(namespace=os.environ["POD_NAMESPACE"])
+    return render_template('pods.html',pods=pods)
 
 @application.route('/')
 def index():
     return render_template('index.html')
 
-@application.route('/pods')
-    """
-    List pods in the current project
-    """
-def pods():
-    v1_pods = dyn_client.resources.get(api_version='v1', kind='Pod')
-    pods = v1_pods.get()
-    print(v1_pods)
-    return render_template('pods.html',pods=pods)

@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: ocd
+  annotationns:
+    "openshift.io/display-name": openshift-client-demo
+    description: |
+      OpenShift Client Demo
+    tags: "api,kubernetes,python"
+parameters:
+- name: FLASK_SECRET
+  displayName: Flask secret key
+  description: Flask secret key
+  generate: expression
+  from: "[a-zA-Z0-9]{24}"
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: openshift-client-demo
+    labels:
+      app: openshift-client-demo
+  spec:
+    selector:
+      app: openshift-client-demo
+    ports:
+      - name: openshift-client-demo
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: openshift-client-demo
+    labels:
+      app: openshift-client-demo
+  spec:
+    to:
+      kind: Service
+      name: openshift-client-demo
+    port:
+      targetPort: openshift-client-demo
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: flask
+  type: Opaque 
+  stringData: 
+    flask-secret-key: ${FLASK_SECRET}
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: openshift-client-demo
+    name: openshift-client-demo
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: openshift-client-demo
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: openshift-client-demo
+          deploymentconfig: openshift-client-demo
+      spec:
+        serviceAccount: deployer
+        serviceAccountName: deployer
+        containers:
+        - env:
+          - name: FLASK_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: flask-secret-key
+                name: flask
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          image: openshift-client-demo:latest
+          imagePullPolicy: Always
+          name: openshift-client-demo
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+        restartPolicy: Always
+        schedulerName: default-scheduler
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - openshift-client-demo
+        from:
+          kind: ImageStreamTag
+          name: openshift-client-demo:latest
+      type: ImageChange
+    - type: ConfigChange
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: null
+    labels:
+      app: openshift-client-demo
+    name: openshift-client-demo
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: openshift-client-demo:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        ref: master
+        uri: https://github.com/shaneboulden/openshift-client-demo
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: python:3.6
+          namespace: openshift
+      type: Source
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+    - type: ConfigChange
+    - generic:
+        secret: 9e97ae08607b0901
+      type: Generic
+    - github:
+        secret: f6d3dd2e4b3dea46
+      type: GitHub
+  status:
+    lastVersion: 0
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: openshift-client-demo
+    name: openshift-client-demo
+  spec: {}

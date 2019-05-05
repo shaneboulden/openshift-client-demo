@@ -1,9 +1,32 @@
 
 {%- extends "base.html" %}
-{% set active_page = "home" %}
+{% set active_page = "pods" %}
 
 {% block content %}
+   {%- if pods %}
+   <table class="table">
+     <thead>
+      <tr>
+        <th>Name</th>
+        <th>Namespace</th>
+        <th>Pod IP</th>
+        <th>Host IP</th>
+      </tr>
+     </thead>
+     <tbody>
+   {% for i in pods.items %}
+   <tr>
+     <td>{{ i.metadata.name }}</td>
+     <td>{{ i.metadata.namespace }}</td>
+     <td>{{ i.status.pod_ip }}</td>
+     <td>{{ i.status.host_ip }}</td>
+   </tr>
+   {%- endfor %}
+     </tbody>
+   </table>
+   {%- else %}
    <div>
-     <p>{{ pods }}</p>
+      <p>This is a placeholder for the pod data</p>
     </div>
+   {%- endif %}
 {%- endblock %}
