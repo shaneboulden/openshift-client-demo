@@ -5,15 +5,12 @@ from flask import Flask, render_template, flash, redirect, request
 import requests
 import json
 import os
-import kubernetes.client
-import kubernetes.config
-from openshift.dynamic import DynamicClient
+from kubernetes import client, config
 
 application = Flask(__name__)
 application.secret_key = os.environ['FLASK_SECRET']
-k8s_client = config.load_incluster_config()
-dyn_client = DynamicClientk8s_client)
-
+config.load_incluster_config()
+v1 = client.CoreV1Api()
 
 @application.route('/healthz')
 def healthz():
@@ -23,16 +20,15 @@ def healthz():
     """
     return 'OK'
 
-@application.route('/')
-def index():
-    return render_template('index.html')
-
 @application.route('/pods')
+def pods():
     """
     List pods in the current project
     """
-def pods():
-    v1_pods = dyn_client.resources.get(api_version='v1', kind='Pod')
-    pods = v1_pods.get()
-    print(v1_pods)
+    pods = json.dumps(v1.list_namespaced_pod(namespace=os.environ["POD_NAMESPACE"]).to_dict())
+    print(pods)
     return render_template('pods.html',pods=pods)
+
+@application.route('/')
+def index():
+    return render_template('index.html')
